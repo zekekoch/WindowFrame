@@ -10,8 +10,8 @@ const uint16_t other_node = 1;// Address of the other node
 
 byte ledMode = 0;
 
-const int redPin = 4;
-const int greenPin = 22;
+const int redPin = 22;
+const int greenPin = 4;
 const int bluePin = 20;
 
 // Structure of our payload
@@ -90,20 +90,44 @@ void setColor(CRGB c)
     analogWrite(bluePin, c.b);
 }
 
-void musicRainbow(byte bass)
+void musicRainbow(byte eq[7])
 {
     CRGB c;
-    hsv2rgb_rainbow(CHSV(bass + 100, 255, 255), c);
+    hsv2rgb_rainbow(CHSV(bass(eq) + 100, 255, 255), c);
     setColor(c);
 
 }
 
-void musicSaturation(byte bass)
+void musicSaturation(byte eq[7])
 {
     CRGB c;
-    hsv2rgb_spectrum(CHSV(100, 255-bass, 255), c);
+    hsv2rgb_spectrum(CHSV(100, 255-bass(eq), 255), c);
     setColor(c);
 
+}
+
+void musicFade(byte eq[7], CRGB baseColor, CRGB highlightColor)
+{
+
+    if (bass(eq) > 150) {
+        setColor(baseColor);
+    } else {
+        setColor(highlightColor);
+    }
+}
+
+byte high(byte eq[7])
+{
+    int out;
+    out = (eq[4] + eq[4]) / 2;
+    return (byte)out;    
+}
+
+byte bass(byte eq[7])
+{
+    int out;
+    out = (eq[0] + eq[1]) / 2;
+    return (byte)out;
 }
 
 
@@ -133,80 +157,77 @@ void loop() {
         
        ledMode = payload.mode;
     }
-    
-    
-    int high, bass;
-    bass = (payload.eq[0] + payload.eq[1]) / 2;
-    high = (payload.eq[4] + payload.eq[4]) /2;
+        
     switch(ledMode)
     {
         case 0:
-            
-            //Serial.print("bass: ");
-            //Serial.print(bass);
-            //Serial.println();
-
-            if (bass > 150)
-            {
-                setColor(CRGB::LightPink);
-            }
-            else
-            {
-                setColor(CRGB::Fuchsia);
-            }
-            
-            //    bass > 150 ? fillSolid(1, highlightColor) : fillSolid(1, baseColor);
-            //    bass > 200 ? fillSolid(2, highlightColor) : fillSolid(2, baseColor);
-            //    high > 150 ? fillSolid(3, highlightColor) : fillSolid(3, baseColor);
-            //    high > 100 ? fillSolid(4, highlightColor) : fillSolid(4, baseColor);
-            //    high > 200 ? fillSolid(5, highlightColor) : fillSolid(5, baseColor);
-            //    high > 200 ? fillSolid(6, highlightColor) : fillSolid(6, baseColor);
-
+            musicFade(payload.eq, CRGB::LightPink, CRGB::Fuchsia);
+            delay(5);
             break;
         case 1:
-            rainbow();
+            setColor(CRGB::AntiqueWhite);
             delay(5);
             break;
         case 2:
-            setColor(CRGB::HotPink);
-            break;
         case 3:
-            setColor(CRGB::DeepPink);
-            break;
         case 4:
-            saturation();
+            rainbow(); 
             delay(5);
             break;
-        case 5:
-            setColor(CRGB::Fuchsia);
+        case 5: // color_bounce
+        case 6: // color_bounceFADE
+            musicFade(payload.eq, CRGB::Black, CRGB::Red);
             break;
-        case 6:
-            musicRainbow(bass);
+        case 7: // police_lightsONE
+        case 8: // police_lightsALL
+            musicFade(payload.eq, CRGB::Blue, CRGB::Red);
+            delay(5);
             break;
-        case 7:
-            musicSaturation(bass);
+        //    saturation();
+        //    delay(5);
+        case 9: // flicker
+        case 10:
+        case 11:
+            musicSaturation(payload.eq);
+            delay(5);
+            break;
+        case 12: // fade_vertical
+        case 13: // rule30
+            musicRainbow(payload.eq);
+            delay(5);
+            break;
+        case 14: // random_march
+        case 15: // rwb_march
+        case 17: // color_loop_vardelay
+            rainbow(); 
+            delay(5);
+            break;
+        case 101:
+            setColor(CRGB::Red);
+            break;
+        case 103:
+            setColor(CRGB::Blue);
+            break;
+        case 102:
+            setColor(CRGB::Green);
+            break;
+        case 104:
+            setColor(CRGB::Yellow);
+            break;
+        case 105:
+            setColor(CRGB::Teal);
+            break;
+        case 106:
+            setColor(CRGB::Violet);
             break;
         default:
-            musicRainbow(bass);
+            musicRainbow(payload.eq);
+            delay(5);
             break;
     }
     /*
-     if (ledMode == 2) {rainbow_fade(20);}                //---STRIP RAINBOW FADE
-     if (ledMode == 3) {rainbow_loop(10, 20);}            //---RAINBOW LOOP
-     if (ledMode == 4) {random_burst(20);}                //---RANDOM
-     if (ledMode == 5) {color_bounce(20);}                //---CYLON v1
-     if (ledMode == 6) {color_bounceFADE(20);}            //---CYLON v2
-     if (ledMode == 7) {police_lightsONE(40);}            //---POLICE SINGLE
-     if (ledMode == 8) {police_lightsALL(40);}            //---POLICE SOLID
-     if (ledMode == 9) {flicker(200,255);}                //---STRIP FLICKER
-     if (ledMode == 10) {pulse_one_color_all(0, 10);}     //--- PULSE COLOR BRIGHTNESS
-     if (ledMode == 11) {pulse_one_color_all_rev(0, 10);} //--- PULSE COLOR SATURATION
      if (ledMode == 12) {fade_vertical(240, 60);}         //--- VERTICAL SOMETHING
-     if (ledMode == 13) {rule30(100);}                    //--- CELL AUTO - RULE 30 (RED)
-     if (ledMode == 14) {random_march(30);}               //--- MARCH RANDOM COLORS
-     if (ledMode == 15) {rwb_march(50);}                  //--- MARCH RWB COLORS
      if (ledMode == 16) {radiation(120, 60);}             //--- RADIATION SYMBOL (OR SOME APPROXIMATION)
-     if (ledMode == 17) {color_loop_vardelay();}          //--- VARIABLE DELAY LOOP
      if (ledMode == 18) {white_temps();}                  //--- WHITE TEMPERATURES
      if (ledMode == 19) {sin_bright_wave(240, 35);}       //--- SIN WAVE BRIGHTNESS
      if (ledMode == 20) {pop_horizontal(300, 100);}       //--- POP LEFT/RIGHT
@@ -217,13 +238,6 @@ void loop() {
      
      if (ledMode == 98) {strip_march_ccw(100);}           //--- MARCH WHATEVERS ON THE STRIP NOW CC-W
      if (ledMode == 99) {strip_march_cw(100);}            //--- MARCH WHATEVERS ON THE STRIP NOW C-W
-     
-     if (ledMode == 101) {fillSolid(255,0,0);}    //---101- STRIP SOLID RED
-     if (ledMode == 102) {fillSolid(0,255,0);}    //---102- STRIP SOLID GREEN
-     if (ledMode == 103) {fillSolid(0,0,255);}    //---103- STRIP SOLID BLUE
-     if (ledMode == 104) {fillSolid(255,255,0);}  //---104- STRIP SOLID YELLOW
-     if (ledMode == 105) {fillSolid(0,255,255);}  //---105- STRIP SOLID TEAL?
-     if (ledMode == 106) {fillSolid(255,0,255);}  //---106- STRIP SOLID VIOLET?
      
      if (ledMode == 888) {demo_mode();}
      */
